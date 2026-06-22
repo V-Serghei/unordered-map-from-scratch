@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -13,6 +14,18 @@ template<typename Key, typename Data, typename dobLincList = node<Key, Data>,
         typename Iter = iterator<dobLincList, Key, Data>>
 class UnorderedMAP : public abstract_data_t<Key, Data> {
 public:
+    using key_type = Key;
+    using mapped_type = Data;
+    using value_type = std::pair<Key, Data>;
+    using size_type = size_t;
+    using difference_type = std::ptrdiff_t;
+    using hasher = std::hash<Key>;
+    using key_equal = std::equal_to<Key>;
+
+    struct node_type {
+        // TODO: implement node handle support like std::unordered_map::node_type.
+    };
+
     ~UnorderedMAP() override {
         clear();
         delete[] hash_table;
@@ -74,6 +87,8 @@ public:
     }
 
 
+    // TODO: std::unordered_map has overloads for const key_type&, key_type&&,
+    // and transparent lookup. Current version accepts Key by value.
     Data &operator[](Key key_find) override {
         try {
             return (at(key_find));
@@ -86,10 +101,13 @@ public:
         }
     }
 
+    // TODO: std::unordered_map does not provide const operator[].
+    // Keep it for current project compatibility, but remove or redesign later.
     Data &operator[](Key key_find) const override {
         return at(key_find);
     }
 
+    // TODO: return const Data& in the const overload, matching std::unordered_map::at.
     Data &at(Key key_) const override {
         dobLincList *find_ = hash_table[hash_function(key_) % size_table];
 
@@ -172,12 +190,16 @@ public:
     }
 
     void merge(const abstract_data_t<Key, Data> &obgTMP) override {
+        // TODO: std::unordered_map::merge transfers nodes and leaves duplicates in source.
+        // Current implementation copies/assigns values and does not modify source.
         for (auto it = obgTMP.cbegin(); it != obgTMP.cend(); it++) {
             (*this)[it->first] = it->second;
         }
     }
 
     size_t max_size() const override {
+        // TODO: std::unordered_map::max_size returns maximum possible element count,
+        // not the current bucket-table size.
         return size_table;
     }
 
@@ -190,6 +212,7 @@ public:
     }
 
     void emplace(Key key, Data value) override {
+        // TODO: std::unordered_map::emplace returns pair<iterator, bool> and accepts variadic args.
         if ((size_Bucket * 100) / size_table >= 100) {
             reHashing(size_table * 2);
         }
@@ -227,6 +250,8 @@ public:
     }
 
     void try_emplace(Key key, Data value) override {
+        // TODO: std::unordered_map::try_emplace returns pair<iterator, bool>,
+        // constructs mapped value only when insertion happens, and supports hint overloads.
         if ((size_Bucket * 100) / size_table >= 100) {
             reHashing(size_table * 2);
         }
@@ -266,6 +291,8 @@ public:
     }
 
     void insert_or_assign(Key key, Data value) override {
+        // TODO: std::unordered_map::insert_or_assign returns pair<iterator, bool>
+        // or iterator for hint overloads. Current version returns void.
         if ((size_Bucket * 100) / size_table >= 100) {
             reHashing(size_table * 2);
         }
@@ -328,6 +355,8 @@ public:
     }
 
     void reHashing(size_t size) override {
+        // TODO: rename to rehash(size_t). Standard rehash uses at least n buckets
+        // and respects max_load_factor.
         if (head == nullptr) {
             UnorderedMAP TMP(size);
             swap(TMP);
@@ -364,6 +393,7 @@ public:
         return a;
     }
 
+    // TODO: add const overload begin() const. Current const access uses cbegin().
     Iter end() override {
         iterator<dobLincList, Key, Data> a(nullptr);
         return a;
@@ -441,6 +471,8 @@ public:
 
     iterator<dobLincList, Key, Data>
     insert(iterator<dobLincList, Key, Data> beg, const std::pair<Key, Data> ins) override {
+        // TODO: std::unordered_map uses const_iterator hint and returns iterator.
+        // Current hint is not used to optimize insertion.
         if (beg == end()) {
             emplace(ins.first, ins.second);
             return find(ins.first);
@@ -456,11 +488,14 @@ public:
     };
 
     void insert(const std::pair<Key, Data> ins) override {
+        // TODO: std::unordered_map::insert returns pair<iterator, bool>.
 
         emplace(ins.first, ins.second);
     };
 
     void reserve(size_t new_size) override {
+        // TODO: std::unordered_map::reserve(n) prepares for n elements.
+        // Current implementation treats n as bucket count.
         reHashing(new_size);
     }
 
@@ -472,6 +507,8 @@ public:
     };
 
     Iter erase(iterator<dobLincList, Key, Data> iter) override {
+        // TODO: std::unordered_map has erase(iterator), erase(const_iterator),
+        // erase(key), and erase(first, last). This project only partially covers them.
         if (iter == end()) {
             return iter;
 
@@ -489,6 +526,8 @@ public:
 
 
     void insert_range(std::initializer_list<std::pair<Key, Data>> &pair_list) override {
+        // TODO: std::unordered_map::insert_range accepts a compatible range,
+        // not only initializer_list by non-const reference.
         for (const auto &item: pair_list) {
             emplace(item.first, item.second);
         }
@@ -507,6 +546,206 @@ public:
     [[nodiscard]] float max_load_factor() const override {
         return static_cast<float>(max_l_factor);
     };
+
+    // TODO: implement allocator support. Standard unordered_map returns allocator_type.
+    void get_allocator() const {
+    }
+
+    // TODO: implement move constructor with correct ownership transfer.
+    // Current class owns raw pointers, so default move would be unsafe.
+
+    // TODO: implement initializer_list assignment like std::unordered_map::operator=(initializer_list).
+    UnorderedMAP &assign_from_initializer_list(std::initializer_list<std::pair<Key, Data>> values) {
+        clear();
+        for (const auto &item: values) {
+            emplace(item.first, item.second);
+        }
+        return *this;
+    }
+
+    // TODO: implement std::unordered_map::emplace_hint semantics.
+    Iter emplace_hint(Iter hint, Key key, Data value) {
+        emplace(key, value);
+        return find(key);
+    }
+
+    // TODO: implement insert(first, last) range overload.
+    template<typename InputIterator>
+    void insert(InputIterator first, InputIterator last) {
+        for (auto it = first; it != last; ++it) {
+            insert(*it);
+        }
+    }
+
+    // TODO: implement initializer_list insert overload with standard return/behavior details.
+    void insert(std::initializer_list<std::pair<Key, Data>> values) {
+        for (const auto &item: values) {
+            insert(item);
+        }
+    }
+
+    // TODO: implement extract(iterator). Standard method removes a node and returns node_type.
+    node_type extract(Iter position) {
+        if (position != end()) {
+            erase(position);
+        }
+        return {};
+    }
+
+    // TODO: implement extract(key). Standard method removes the matching node and returns node_type.
+    node_type extract(const Key &key) {
+        erase_Key(key);
+        return {};
+    }
+
+    // TODO: implement insert(node_type&&). Standard method reinserts an extracted node.
+    std::pair<Iter, bool> insert(node_type &&node_handle) {
+        (void) node_handle;
+        return {end(), false};
+    }
+
+    // TODO: implement insert(hint, node_type&&). Standard method reinserts an extracted node using a hint.
+    Iter insert(Iter hint, node_type &&node_handle) {
+        (void) node_handle;
+        return hint;
+    }
+
+    // TODO: implement erase(const Key&) with standard return value.
+    size_t erase(const Key &key) {
+        bool existed = contains(key);
+        erase_Key(key);
+        return existed ? 1 : 0;
+    }
+
+    // TODO: implement erase(first, last). Current iterator type is fragile for range erase.
+    Iter erase(Iter first, Iter last_iter) {
+        while (first != last_iter) {
+            first = erase(first);
+        }
+        return last_iter;
+    }
+
+    // TODO: implement standard observers using stored hasher object if custom hashers are added.
+    hasher hash_function() const {
+        return hasher{};
+    }
+
+    // TODO: implement standard key equality observer using stored predicate if custom predicates are added.
+    key_equal key_eq() const {
+        return key_equal{};
+    }
+
+    // TODO: add const find overload returning const_iterator when iterator model is split.
+    Iter find(const Key &key) const {
+        dobLincList *del = find_node_const(key);
+        iterator<dobLincList, Key, Data> it(del);
+        return it;
+    }
+
+    size_t count(const Key &key) const {
+        return contains(key) ? 1 : 0;
+    }
+
+    bool contains(const Key &key) const {
+        return find_node_const(key) != nullptr;
+    }
+
+    // TODO: implement equal_range with proper iterator pair semantics.
+    std::pair<Iter, Iter> equal_range(const Key &key) {
+        Iter it = find(key);
+        if (it == end()) {
+            return {end(), end()};
+        }
+
+        Iter next = it;
+        ++next;
+        return {it, next};
+    }
+
+    // TODO: implement const equal_range after introducing a real const_iterator.
+    std::pair<Iter, Iter> equal_range(const Key &key) const {
+        Iter it = find(key);
+        if (it == cend()) {
+            return {cend(), cend()};
+        }
+
+        Iter next = it;
+        ++next;
+        return {it, next};
+    }
+
+    size_t bucket_count() const {
+        return size_table;
+    }
+
+    // TODO: std::unordered_map::max_bucket_count returns maximum possible bucket count.
+    size_t max_bucket_count() const {
+        return size_table;
+    }
+
+    size_t bucket_size(size_t n) const {
+        if (n >= size_table) {
+            return 0;
+        }
+
+        size_t result = 0;
+        for (dobLincList *current = head; current != nullptr; current = current->next) {
+            if (current->hash % size_table == n) {
+                ++result;
+            }
+        }
+        return result;
+    }
+
+    size_t bucket(const Key &key) const {
+        if (size_table == 0) {
+            return 0;
+        }
+        return hash_function(key) % size_table;
+    }
+
+    // TODO: implement real local_iterator. Current iterator walks the global linked list.
+    Iter begin(size_t n) {
+        return local_bucket_begin(n);
+    }
+
+    // TODO: implement real const_local_iterator.
+    Iter begin(size_t n) const {
+        return local_bucket_begin(n);
+    }
+
+    // TODO: implement real local bucket end sentinel.
+    Iter end(size_t n) {
+        (void) n;
+        return end();
+    }
+
+    // TODO: implement real const local bucket end sentinel.
+    Iter end(size_t n) const {
+        (void) n;
+        return cend();
+    }
+
+    // TODO: implement real const_local_iterator.
+    Iter cbegin(size_t n) const {
+        return local_bucket_begin(n);
+    }
+
+    // TODO: implement real const local bucket end sentinel.
+    Iter cend(size_t n) const {
+        (void) n;
+        return cend();
+    }
+
+    // TODO: std::unordered_map exposes max_load_factor(float) setter.
+    void max_load_factor(float z) {
+        max_l_factor = z;
+    }
+
+    // TODO: standard spelling. Keep reHashing for backward compatibility.
+    void rehash(size_t n) {
+        reHashing(n);
+    }
 
 private:
     dobLincList **hash_table{nullptr};
@@ -538,5 +777,29 @@ private:
 
             return result;
         }
+    }
+
+    dobLincList *find_node_const(const Key &key) const {
+        if (hash_table == nullptr || size_table == 0) {
+            return nullptr;
+        }
+
+        size_t hash_value = hash_function(key);
+        dobLincList *current = hash_table[hash_value % size_table];
+
+        while (current) {
+            if (current->pair.first == key) {
+                return current;
+            }
+            current = current->next;
+        }
+        return nullptr;
+    }
+
+    Iter local_bucket_begin(size_t n) const {
+        if (hash_table == nullptr || n >= size_table) {
+            return Iter(nullptr);
+        }
+        return Iter(hash_table[n]);
     }
 };
