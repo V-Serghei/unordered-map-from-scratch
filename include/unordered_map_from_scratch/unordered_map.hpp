@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -14,6 +15,9 @@ class UnorderedMAP : public abstract_data_t<Key, Data> {
 public:
     ~UnorderedMAP() override {
         clear();
+        delete[] hash_table;
+        hash_table = nullptr;
+        size_table = 0;
     };
 
     explicit UnorderedMAP(size_t size) {
@@ -115,7 +119,12 @@ public:
     [[nodiscard]] bool is_equal(const UnorderedMAP &obj1) const {
         if (this->size_Bucket != obj1.size_Bucket)return false;
         for (auto it = obj1.cbegin(); it != obj1.cend(); it++) {
-            if (((*this)[it->first]) == (obj1[it->first]))return false;
+            try {
+                if (this->at(it->first) != obj1[it->first])return false;
+            }
+            catch (const std::out_of_range &) {
+                return false;
+            }
         }
 
         return true;
@@ -128,9 +137,26 @@ public:
         return is_equal(dynamic_cast<const UnorderedMAP &>(orig));
     }
 
+    bool operator==(const UnorderedMAP &orig) const {
+        return is_equal(orig);
+    }
+
     UnorderedMAP &operator=(const abstract_data_t<Key, Data> &orig) override {
-        abstract_data_t<Key, Data> *copy = new UnorderedMAP(dynamic_cast<const UnorderedMAP &>(orig));
-        for (auto it = copy->begin(); it != copy->end(); ++it) {
+        if (this == &orig) {
+            return *this;
+        }
+
+        const auto &copy = dynamic_cast<const UnorderedMAP &>(orig);
+        return *this = copy;
+    }
+
+    UnorderedMAP &operator=(const UnorderedMAP &copy) {
+        if (this == &copy) {
+            return *this;
+        }
+
+        clear();
+        for (auto it = copy.cbegin(); it != copy.cend(); ++it) {
             this->push(it->first, it->second);
         }
         return *this;
@@ -192,6 +218,8 @@ public:
                                            tmp, size_table)){
                     if (tmp->next == nullptr) last = tmp;
                     size_Bucket++;
+                } else {
+                    delete tmp;
                 }
 
             }
@@ -228,6 +256,8 @@ public:
                                             tmp, size_table)){
                        if (tmp->next == nullptr) last = tmp;
                        size_Bucket++;
+                   } else {
+                       delete tmp;
                    }
 
 
@@ -264,6 +294,8 @@ public:
                                                  tmp, size_table)) {
                     if (tmp->next == nullptr) last = tmp;
                     size_Bucket++;
+                } else {
+                    delete tmp;
                 }
             }
         }
@@ -311,13 +343,6 @@ public:
 
 
     void clear() override {
-        if (head == nullptr) {
-            if (hash_table != nullptr) {
-                delete[] hash_table;
-                hash_table = nullptr;
-            }
-            return;
-        }
         dobLincList *current = head;
         while (current) {
             dobLincList *temp = current;
@@ -325,11 +350,11 @@ public:
 
             delete temp;
         }
-        delete[]hash_table;
-        hash_table = nullptr;
+        for (size_t i = 0; hash_table != nullptr && i < size_table; ++i) {
+            hash_table[i] = nullptr;
+        }
         head = nullptr;
         last = nullptr;
-        size_table = 0;
         size_Bucket = 0;
     }
 
@@ -340,7 +365,7 @@ public:
     }
 
     Iter end() override {
-        iterator<dobLincList, Key, Data> a(last->next);
+        iterator<dobLincList, Key, Data> a(nullptr);
         return a;
     }
 
@@ -350,12 +375,16 @@ public:
     }
 
     const Iter cend() const override {
-        const iterator<dobLincList, Key, Data> a(last->next);
+        const iterator<dobLincList, Key, Data> a(nullptr);
         return a;
     }
 
 
     dobLincList *find_Node(Key &key) override {
+        if (hash_table == nullptr || size_table == 0) {
+            return nullptr;
+        }
+
         size_t hash_value = hash_function(key);
         dobLincList *current = hash_table[hash_value % size_table];
 
@@ -371,25 +400,32 @@ public:
     void erase_Key(Key key) override {
         dobLincList *del = find_Node(key);
         if (del == nullptr)return;
-        if (head->next == nullptr) {
-            clear();
-            return;
+
+        if (del->prev != nullptr) {
+            del->prev->next = del->next;
+        } else {
+            head = del->next;
         }
-        if (hash_table[hash_function(del->pair.first) % size_table]->next == nullptr) {
-            dobLincList *prev_ = del->prev;
-            prev_->next = del->next;
-            del->clear_node();
-            size_Bucket--;
-            return;
+
+        if (del->next != nullptr) {
+            del->next->prev = del->prev;
+        } else {
+            last = del->prev;
         }
-        if (((hash_table[hash_function(del->pair.first) % size_table]->next->hash) % size_table)
-            != (del->hash % size_table))
-            hash_table[hash_function(del->pair.first) % size_table] = nullptr;
-        dobLincList *prev_ = del->prev;
-        if (prev_ == nullptr)head = del->next;
-        else prev_->next = del->next;
+
         del->clear_node();
+        delete del;
         size_Bucket--;
+
+        for (size_t i = 0; i < size_table; ++i) {
+            hash_table[i] = nullptr;
+        }
+        for (dobLincList *current = head; current != nullptr; current = current->next) {
+            size_t bucket = current->hash % size_table;
+            if (hash_table[bucket] == nullptr) {
+                hash_table[bucket] = current;
+            }
+        }
     }
 
     Data &front() override {
@@ -398,13 +434,17 @@ public:
     }
 
     Data &back() override {
+        if (last == nullptr)throw std::out_of_range("no knots");
         return last->pair.second;
     }
 
 
     iterator<dobLincList, Key, Data>
     insert(iterator<dobLincList, Key, Data> beg, const std::pair<Key, Data> ins) override {
-        if (beg == end())emplace(ins.first, ins.second);
+        if (beg == end()) {
+            emplace(ins.first, ins.second);
+            return find(ins.first);
+        }
         /*bool belonging = true;
         for (auto it : *this)
         {
@@ -433,7 +473,6 @@ public:
 
     Iter erase(iterator<dobLincList, Key, Data> iter) override {
         if (iter == end()) {
-            erase_Key(last->pair.first);
             return iter;
 
         }
