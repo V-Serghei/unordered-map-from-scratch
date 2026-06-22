@@ -1,0 +1,53 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# Ninja / Make artifacts
+.ninja_deps
+.ninja_log
+build.ninja
+Makefile
+
+# Compiled binaries and objects
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.idb
+
+# Debug and profiling output
+*.log
+*.dSYM/
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+
+# IDE and editor metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
