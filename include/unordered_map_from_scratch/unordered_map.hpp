@@ -1,12 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <cmath>
 #include <functional>
 #include <iostream>
 #include <stdexcept>
-#include <string>
-#include <unordered_map>
 
 #include "unordered_map_from_scratch/abstract_data.hpp"
 
@@ -27,7 +24,7 @@ public:
     };
 
     ~UnorderedMAP() override {
-        clear();
+        UnorderedMAP::clear();
         delete[] hash_table;
         hash_table = nullptr;
         size_table = 0;
@@ -65,7 +62,7 @@ public:
         if (orig.empty()) {
             this->swap(EMP);
         } else {
-            for (auto iter = orig.cbegin(); iter != orig.cend(); iter++) {
+            for (auto iter = orig.cbegin(); iter != orig.cend(); ++iter) {
                 EMP.emplace(iter->first, iter->second);
             }
             this->swap(EMP);
@@ -81,8 +78,8 @@ public:
     }
 
     friend std::ostream &operator<<(std::ostream &output, const UnorderedMAP &map) {
-        for (auto print = map.cbegin(); print != map.cend(); print++)
-            output << "[" << print->first << "->" << print->second << "]" << std::endl;
+        for (auto print = map.cbegin(); print != map.cend(); ++print)
+            output << "[" << print->first << "->" << print->second << "]\n";
         return output;
     }
 
@@ -93,8 +90,7 @@ public:
         try {
             return (at(key_find));
         }
-        catch (const std::out_of_range &e) {
-            // std::cerr << "Exception ->  " << e.what() << std::endl;
+        catch (const std::out_of_range &) {
             this->emplace(key_find, Data{});
 
             return at(key_find);
@@ -136,7 +132,7 @@ public:
 
     [[nodiscard]] bool is_equal(const UnorderedMAP &obj1) const {
         if (this->size_Bucket != obj1.size_Bucket)return false;
-        for (auto it = obj1.cbegin(); it != obj1.cend(); it++) {
+        for (auto it = obj1.cbegin(); it != obj1.cend(); ++it) {
             try {
                 if (this->at(it->first) != obj1[it->first])return false;
             }
@@ -148,24 +144,15 @@ public:
         return true;
     }
 
+    [[nodiscard]] bool operator==(const UnorderedMAP &orig) const {
+        return is_equal(orig);
+    }
+
     bool operator==(const abstract_data_t<Key, Data> &orig) const override {
         if (!dynamic_cast<const UnorderedMAP *>(&orig)) {
             return false;
         }
         return is_equal(dynamic_cast<const UnorderedMAP &>(orig));
-    }
-
-    bool operator==(const UnorderedMAP &orig) const {
-        return is_equal(orig);
-    }
-
-    UnorderedMAP &operator=(const abstract_data_t<Key, Data> &orig) override {
-        if (this == &orig) {
-            return *this;
-        }
-
-        const auto &copy = dynamic_cast<const UnorderedMAP &>(orig);
-        return *this = copy;
     }
 
     UnorderedMAP &operator=(const UnorderedMAP &copy) {
@@ -181,7 +168,7 @@ public:
     }
 
 
-    void swap(UnorderedMAP &abstractData) {
+    void swap(UnorderedMAP &abstractData) noexcept {
         std::swap(this->hash_table, abstractData.hash_table);
         std::swap(this->head, abstractData.head);
         std::swap(this->last, abstractData.last);
@@ -192,18 +179,18 @@ public:
     void merge(const abstract_data_t<Key, Data> &obgTMP) override {
         // TODO: std::unordered_map::merge transfers nodes and leaves duplicates in source.
         // Current implementation copies/assigns values and does not modify source.
-        for (auto it = obgTMP.cbegin(); it != obgTMP.cend(); it++) {
+        for (auto it = obgTMP.cbegin(); it != obgTMP.cend(); ++it) {
             (*this)[it->first] = it->second;
         }
     }
 
-    size_t max_size() const override {
+    [[nodiscard]] size_t max_size() const override {
         // TODO: std::unordered_map::max_size returns maximum possible element count,
         // not the current bucket-table size.
         return size_table;
     }
 
-    size_t size() const override {
+    [[nodiscard]] size_t size() const override {
         return size_Bucket;
     }
 
@@ -347,7 +334,7 @@ public:
         }
     }
 
-    bool empty() const override {
+    [[nodiscard]] bool empty() const override {
         if (head == nullptr && last == nullptr
             && size_Bucket == 0)
             return true;
@@ -363,7 +350,7 @@ public:
             return;
         } else {
             UnorderedMAP new_map(size);
-            for (auto it = begin(); it != end(); it++) {
+            for (auto it = begin(); it != end(); ++it) {
                 new_map.emplace(it->first, it->second);
             }
             swap(new_map);
@@ -393,19 +380,19 @@ public:
         return a;
     }
 
-    // TODO: add const overload begin() const. Current const access uses cbegin().
+    // TODO: add const overload begin() const. Current const access uses c_begin().
     Iter end() override {
         iterator<dobLincList, Key, Data> a(nullptr);
         return a;
     }
 
-    const Iter cbegin() const override {
-        const iterator<dobLincList, Key, Data> a(head);
+    Iter cbegin() const override {
+        iterator<dobLincList, Key, Data> a(head);
         return a;
     }
 
-    const Iter cend() const override {
-        const iterator<dobLincList, Key, Data> a(nullptr);
+    Iter cend() const override {
+        iterator<dobLincList, Key, Data> a(nullptr);
         return a;
     }
 
@@ -470,7 +457,7 @@ public:
 
 
     iterator<dobLincList, Key, Data>
-    insert(iterator<dobLincList, Key, Data> beg, const std::pair<Key, Data> ins) override {
+    insert(iterator<dobLincList, Key, Data> beg, std::pair<Key, Data> ins) override {
         // TODO: std::unordered_map uses const_iterator hint and returns iterator.
         // Current hint is not used to optimize insertion.
         if (beg == end()) {
@@ -487,7 +474,7 @@ public:
         return beg;
     };
 
-    void insert(const std::pair<Key, Data> ins) override {
+    void insert(std::pair<Key, Data> ins) override {
         // TODO: std::unordered_map::insert returns pair<iterator, bool>.
 
         emplace(ins.first, ins.second);
@@ -519,7 +506,7 @@ public:
         }
         if (belonging)return iter;
         Iter tmp = iter;
-        tmp++;
+        ++tmp;
         erase_Key(iter->first);
         return tmp;
     };
@@ -548,7 +535,7 @@ public:
     };
 
     // TODO: implement allocator support. Standard unordered_map returns allocator_type.
-    void get_allocator() const {
+    static void get_allocator() {
     }
 
     // TODO: implement move constructor with correct ownership transfer.
@@ -571,8 +558,8 @@ public:
 
     // TODO: implement insert(first, last) range overload.
     template<typename InputIterator>
-    void insert(InputIterator first, InputIterator last) {
-        for (auto it = first; it != last; ++it) {
+    void insert(InputIterator first, InputIterator last_iterator) {
+        for (auto it = first; it != last_iterator; ++it) {
             insert(*it);
         }
     }
@@ -599,19 +586,20 @@ public:
     }
 
     // TODO: implement insert(node_type&&). Standard method reinserts an extracted node.
-    std::pair<Iter, bool> insert(node_type &&node_handle) {
-        (void) node_handle;
+    std::pair<Iter, bool> insert(node_type &&handle) {
+        (void) handle;
         return {end(), false};
     }
 
     // TODO: implement insert(hint, node_type&&). Standard method reinserts an extracted node using a hint.
-    Iter insert(Iter hint, node_type &&node_handle) {
-        (void) node_handle;
+    static Iter insert(Iter hint, node_type &&handle) {
+        (void) handle;
         return hint;
     }
 
-    // TODO: implement erase(const Key&) with standard return value.
-    size_t erase(const Key &key) {
+    // TODO: this is the std::unordered_map erase(key) candidate.
+    // It is named erase_by_key for now to avoid clashing with the current abstract erase(Iter).
+    size_t erase_by_key(const Key &key) {
         bool existed = contains(key);
         erase_Key(key);
         return existed ? 1 : 0;
@@ -626,12 +614,12 @@ public:
     }
 
     // TODO: implement standard observers using stored hasher object if custom hashers are added.
-    hasher hash_function() const {
+    static hasher hash_function() {
         return hasher{};
     }
 
     // TODO: implement standard key equality observer using stored predicate if custom predicates are added.
-    key_equal key_eq() const {
+    static key_equal key_eq() {
         return key_equal{};
     }
 
@@ -642,11 +630,11 @@ public:
         return it;
     }
 
-    size_t count(const Key &key) const {
+    [[nodiscard]] size_t count(const Key &key) const {
         return contains(key) ? 1 : 0;
     }
 
-    bool contains(const Key &key) const {
+    [[nodiscard]] bool contains(const Key &key) const {
         return find_node_const(key) != nullptr;
     }
 
@@ -674,16 +662,16 @@ public:
         return {it, next};
     }
 
-    size_t bucket_count() const {
+    [[nodiscard]] size_t bucket_count() const {
         return size_table;
     }
 
     // TODO: std::unordered_map::max_bucket_count returns maximum possible bucket count.
-    size_t max_bucket_count() const {
+    [[nodiscard]] size_t max_bucket_count() const {
         return size_table;
     }
 
-    size_t bucket_size(size_t n) const {
+    [[nodiscard]] size_t bucket_size(size_t n) const {
         if (n >= size_table) {
             return 0;
         }
@@ -697,7 +685,7 @@ public:
         return result;
     }
 
-    size_t bucket(const Key &key) const {
+    [[nodiscard]] size_t bucket(const Key &key) const {
         if (size_table == 0) {
             return 0;
         }
@@ -709,7 +697,7 @@ public:
         return local_bucket_begin(n);
     }
 
-    // TODO: implement real const_local_iterator.
+    // TODO: implement real const local iterator.
     Iter begin(size_t n) const {
         return local_bucket_begin(n);
     }
@@ -726,7 +714,7 @@ public:
         return cend();
     }
 
-    // TODO: implement real const_local_iterator.
+    // TODO: implement real const local iterator.
     Iter cbegin(size_t n) const {
         return local_bucket_begin(n);
     }
@@ -766,7 +754,7 @@ private:
         } else {
             int result = key_;
             result = (result << 12) | (result >> (sizeof(int) * 8 - 1));
-            result ^= 0xAAAAAAAA;
+            result ^= ~0x55555555;
 
 
             result = (result >= 0) ? result : -result;

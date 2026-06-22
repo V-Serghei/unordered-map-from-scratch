@@ -34,7 +34,7 @@ public:
         prev = nullptr;
     }
 
-    static bool insertNode(node *&list, node *&current, size_t size) {
+    static bool insertNode(node *&list, node *&current, std::size_t size) {
         node *now = list;
         while (now->next != nullptr) {
             if (now->pair.first == current->pair.first) {
@@ -58,7 +58,7 @@ public:
         return true;
     }
 
-    static bool insertNodeEqKey(node *&list, node *&current, size_t size) {
+    static bool insertNodeEqKey(node *&list, node *&current, std::size_t size) {
         node *now = list;
         while (now->next != nullptr) {
             if (now->pair.first == current->pair.first) {
