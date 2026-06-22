@@ -51,11 +51,18 @@ build/unordered_map_final.exe
 .
 |-- CMakeLists.txt
 |-- README.md
-|-- main.cpp
+|-- include/
+|   `-- unordered_map_from_scratch/
+|       |-- abstract_data.hpp
+|       |-- iterator.hpp
+|       |-- node.hpp
+|       `-- unordered_map.hpp
+|-- src/
+|   `-- main.cpp
 `-- .gitignore
 ```
 
-At the moment, the implementation and example usage live in `main.cpp`.
+The container is implemented as header-only template code under `include/`, while `src/main.cpp` contains the executable demo.
 
 ## Roadmap
 
@@ -65,7 +72,6 @@ At the moment, the implementation and example usage live in `main.cpp`.
 - Improve rehashing and load factor policy
 - Add copy/move constructors and assignments with correct ownership behavior
 - Add unit tests for insertion, deletion, collisions, rehashing, and iterator validity
-- Move implementation out of `main.cpp` into reusable headers
 
 ## License
 
