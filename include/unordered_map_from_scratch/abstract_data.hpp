@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <initializer_list>
 #include <utility>
 
@@ -18,7 +17,7 @@ public:
 
     virtual bool operator==(const abstract_data_t &) const = 0;
 
-    virtual abstract_data_t &operator= (const abstract_data_t &) = 0;
+    abstract_data_t &operator= (const abstract_data_t &) = default;
 
     virtual Data &operator[](Key) = 0;
 
@@ -38,7 +37,7 @@ public:
 
     virtual void insert_or_assign(Key key, Data value) = 0;
 
-    virtual bool empty() const = 0;
+    [[nodiscard]] virtual bool empty() const = 0;
 
     virtual void clear() = 0;
 
@@ -52,9 +51,9 @@ public:
 
     virtual Iter end() = 0;
 
-    virtual const Iter cbegin() const = 0;
+    virtual Iter cbegin() const = 0;
 
-    virtual const Iter cend() const = 0;
+    virtual Iter cend() const = 0;
 
     virtual Data &back() = 0;
 
@@ -70,9 +69,9 @@ public:
 
     virtual void reserve(size_t new_size) = 0;
 
-    virtual void insert(const std::pair<Key, Data> ins) = 0;
+    virtual void insert(std::pair<Key, Data> ins) = 0;
 
-    virtual Iter insert(Iter beg, const std::pair<Key, Data> ins) = 0;
+    virtual Iter insert(Iter beg, std::pair<Key, Data> ins) = 0;
 
     virtual Iter erase(Iter) = 0;
 
